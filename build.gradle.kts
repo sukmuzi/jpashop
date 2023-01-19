@@ -23,12 +23,16 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("com.github.gavlyukovskiy:p6spy-spring-boot-starter:1.5.6")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.h2database:h2")
     annotationProcessor("org.projectlombok:lombok")
     providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.junit.vintage:junit-vintage-engine") {
+        exclude("org.hamcrest", "hamcrest-core")
+    }
 }
 
 tasks.withType<Test> {
