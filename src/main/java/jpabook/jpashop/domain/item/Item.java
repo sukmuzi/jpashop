@@ -24,6 +24,8 @@ public abstract class Item {
     private int price;
     private int stockQuantity;
 
+    // 컬렉션은 필드에서 초기화하자
+    // 하이버네이트는 엔티티를 영속화 할 때 컬렉션을 감싸서 하이버네이트가 제공하는 내장 컬렉션으로 변경한다.
     @ManyToMany(mappedBy = "items")
     private List<Category> categories = new ArrayList<>();
 }
