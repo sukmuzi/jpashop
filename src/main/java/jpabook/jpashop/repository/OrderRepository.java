@@ -96,4 +96,23 @@ public class OrderRepository {
     public List<Order> findAllByQuerydsl(OrderSearch orderSearch) {
         return null;
     }
+
+    public List<Order> findAllWithMemberDelivery() {
+        // select 절에 member, delivery 도 조회
+        return em.createQuery(
+                "select o from Order o" +
+                        " join fetch o.member m" +
+                        " join fetch o.delivery d", Order.class
+        ).getResultList();
+    }
+
+    public List<Order> findAllWithItem() {
+        return em.createQuery(
+                "select distinct o from Order o" +
+                          " join fetch o.member m" +
+                          " join fetch o.delivery d" +
+                          " join fetch o.orderItems oi" +
+                          " join fetch oi.item i", Order.class
+        ).getResultList();
+    }
 }
