@@ -41,7 +41,7 @@ public class OrderSimpleApiController {
     private final OrderSimpleQueryRepository orderSimpleQueryRepository;
 
     /**
-     * 주문 조회 V1
+     * 간단 주문 조회 V1
      * 엔티티를 직접 노출
      * - Hibernate5Module 모듈 등록, LAZY=null 처리
      * - 양방향 관계 문제 발생 -> @JsonIgnore
@@ -52,7 +52,7 @@ public class OrderSimpleApiController {
      */
     @GetMapping("/api/v1/simple-orders")
     public List<Order> ordersV1() {
-        List<Order> all = orderRepository.findAllByJpql(new OrderSearch());
+        List<Order> all = orderRepository.findAllByJpqlString(new OrderSearch());
         for (Order order : all) {
             order.getMember().getName();  // LAZY 강제 초기화
             order.getDelivery().getAddress();  // LAZY 강제 초기화
@@ -62,7 +62,7 @@ public class OrderSimpleApiController {
     }
 
     /**
-     * 주문 조회 V2
+     * 간단 주문 조회 V2
      * 엔티티를 DTO 로 변환하는 일반적인 방법이다.
      * 쿼리가 총 1 + N + N번 실행된다. (v1과 쿼리수 결과는 같다.)
      * order 조회 1번(order 조회 결과 수가 N이 된다.)
@@ -72,8 +72,8 @@ public class OrderSimpleApiController {
      * 지연로딩은 영속성 컨텍스트에서 조회하므로, 이미 조회된 경우 쿼리를 생략한다.
      */
     @GetMapping("/api/v2/simple-orders")
-    public Result ordersV2() {
-        List<Order> orders = orderRepository.findAllByJpql(new OrderSearch());
+    public Result<SimpleOrderDto> ordersV2() {
+        List<Order> orders = orderRepository.findAllByJpqlString(new OrderSearch());
         List<SimpleOrderDto> collect = orders.stream()
                 .map(o -> new SimpleOrderDto(o))
                 .collect(toList());
@@ -82,14 +82,14 @@ public class OrderSimpleApiController {
     }
 
     /**
-     * 주문 조회 V3
+     * 간단 주문 조회 V3
      * 엔티티를 DTO 로 변환 - 페치 조인 최적화
      * - fetch join 으로 쿼리 1번 호출
      * - 엔티티를 페치 조인(fetch join)을 사용해서 쿼리 1번에 조회
      * - 페치 조인으로 order -> member , order -> delivery 는 이미 조회 된 상태 이므로 지연로딩 X
      */
     @GetMapping("/api/v3/simple-orders")
-    public Result ordersV3() {
+    public Result<SimpleOrderDto> ordersV3() {
         List<Order> orders = orderRepository.findAllWithMemberDelivery();
         List<SimpleOrderDto> collect = orders.stream()
                 .map(o -> new SimpleOrderDto(o))
@@ -99,7 +99,7 @@ public class OrderSimpleApiController {
     }
 
     /**
-     * 주문 조회 V4
+     * 간단 주문 조회 V4
      * JPA 에서 DTO 로 바로 조회
      * 일반적인 SQL 을 사용할 때 처럼 원하는 값을 선택해서 조회
      * new 명령어를 사용해서 JPQL 의 결과를 DTO 로 즉시 변환
@@ -107,7 +107,7 @@ public class OrderSimpleApiController {
      * 리포지토리 재사용성 떨어짐, API 스펙에 맞춘 코드가 리포지토리에 들어가는 단점
      */
     @GetMapping("/api/v4/simple-orders")
-    public Result ordersV4() {
+    public Result<OrderSimpleQueryDto> ordersV4() {
         List<OrderSimpleQueryDto> orders = orderSimpleQueryRepository.findOrderDtos();
 
         return new Result(orders);

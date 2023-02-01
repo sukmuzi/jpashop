@@ -11,7 +11,8 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        show_sql: true
+        #show_sql: true
+        default_batch_fetch_size: 100 # 100 ~ 1000 권장
 
 logging:
   level:

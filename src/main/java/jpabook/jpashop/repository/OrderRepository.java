@@ -29,7 +29,7 @@ public class OrderRepository {
     /**
      * JPQL
      */
-    public List<Order> findAllByJpql(OrderSearch orderSearch) {
+    public List<Order> findAllByJpqlString(OrderSearch orderSearch) {
         String jpql = "select o From Order o join o.member m";
         boolean isFirstCondition = true;
         //주문 상태 검색
@@ -97,22 +97,42 @@ public class OrderRepository {
         return null;
     }
 
+    /**
+     * fetch join
+     * 간단 주문 조회 V3
+     */
     public List<Order> findAllWithMemberDelivery() {
         // select 절에 member, delivery 도 조회
         return em.createQuery(
                 "select o from Order o" +
-                        " join fetch o.member m" +
-                        " join fetch o.delivery d", Order.class
-        ).getResultList();
+                          " join fetch o.member m" +
+                          " join fetch o.delivery d", Order.class)
+                .getResultList();
     }
 
+    public List<Order> findAllWithMemberDelivery(int offset, int limit) {
+        return em.createQuery(
+                        "select o from Order o" +
+                                " join fetch o.member m" +
+                                " join fetch o.delivery d", Order.class)
+                .setFirstResult(offset)
+                .setMaxResults(limit)
+                .getResultList();
+    }
+
+    /**
+     * fetch join
+     * 주문 조회 V3
+     * db 에서 중복제거를 하지않았고, JPA 가 직접 중복제거를 했다.
+     * db 에 distinct 키워드를 날려주기는 한다.
+     */
     public List<Order> findAllWithItem() {
         return em.createQuery(
                 "select distinct o from Order o" +
                           " join fetch o.member m" +
                           " join fetch o.delivery d" +
                           " join fetch o.orderItems oi" +
-                          " join fetch oi.item i", Order.class
-        ).getResultList();
+                          " join fetch oi.item i", Order.class)
+                .getResultList();
     }
 }

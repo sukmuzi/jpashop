@@ -50,7 +50,7 @@ public class MemberApiController {
      * - 추가로 Result 클래스로 컬렉션을 감싸서 향후 필요한 필드를 추가할 수 있다.
      */
     @GetMapping("/api/v2/members")
-    public Result membersV2() {
+    public Result<MemberDto> membersV2() {
         // 엔티티 -> dto 변환
         List<Member> findMembers = memberService.findMembers();
         List<MemberDto> collect = findMembers.stream()
@@ -113,12 +113,6 @@ public class MemberApiController {
 
         return new UpdateMemberResponse(findMember.getId(), findMember.getName());
     }
-
-//    @Data
-//    @AllArgsConstructor
-//    static class Result<T> {
-//        private T data;
-//    }
 
     @Data
     @AllArgsConstructor
