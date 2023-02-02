@@ -1,6 +1,8 @@
 package jpabook.jpashop.repository;
 
-import jpabook.jpashop.domain.Member;
+import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jpabook.jpashop.domain.*;
 import jpabook.jpashop.domain.Order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -12,11 +14,19 @@ import javax.persistence.criteria.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jpabook.jpashop.domain.QMember.*;
+import static jpabook.jpashop.domain.QOrder.*;
+
 @Repository
-@RequiredArgsConstructor
 public class OrderRepository {
 
     private final EntityManager em;
+    private final JPAQueryFactory query;
+
+    public OrderRepository(EntityManager em) {
+        this.em = em;
+        this.query = new JPAQueryFactory(em);
+    }
 
     public void save(Order order) {
         em.persist(order);
@@ -92,9 +102,38 @@ public class OrderRepository {
 
     /**
      * Querydsl
+     * SQL(JPQL)과 모양이 유사하면서 자바 코드로 동적 쿼리를 편리하게 생성할 수 있다.
+     * 높은 개발 생산성을 얻으면서 동시에 쿼리 오류를 컴파일 시점에 빠르게 잡을 수 있다.
+     * 꼭 동적 쿼리가 아니라 정적 쿼리인 경우에도 다음과 같은 이유로 Querydsl 을 사용하는 것이 좋다.
+     * - 직관적인 문법
+     * - 컴파일 시점에 빠른 문법 오류 발견
+     * - 코드 자동완성
+     * - 코드 재사용(이것은 자바다)
+     * - JPQL new 명령어와는 비교가 안될 정도로 깔끔한 DTO 조회를 지원한다.
      */
     public List<Order> findAllByQuerydsl(OrderSearch orderSearch) {
-        return null;
+        return query
+                .select(order)
+                .from(order)
+                .join(order.member, member)
+                .where(statusEq(orderSearch.getOrderStatus()),
+                        nameLike(orderSearch.getMemberName()))
+                .limit(1000)
+                .fetch();
+    }
+
+    private BooleanExpression statusEq(OrderStatus statusCond) {
+        if (statusCond == null) {
+            return null;
+        }
+        return order.status.eq(statusCond);
+    }
+
+    private BooleanExpression nameLike(String nameCond) {
+        if (!StringUtils.hasText(nameCond)) {
+            return null;
+        }
+        return member.name.like(nameCond);
     }
 
     /**
