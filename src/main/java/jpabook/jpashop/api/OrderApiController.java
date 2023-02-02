@@ -7,6 +7,8 @@ import jpabook.jpashop.domain.OrderItem;
 import jpabook.jpashop.domain.OrderStatus;
 import jpabook.jpashop.repository.OrderRepository;
 import jpabook.jpashop.repository.OrderSearch;
+import jpabook.jpashop.repository.order.query.OrderFlatDto;
+import jpabook.jpashop.repository.order.query.OrderItemQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryDto;
 import jpabook.jpashop.repository.order.query.OrderQueryRepository;
 import lombok.Getter;
@@ -16,9 +18,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.*;
 
 /**
  * V1. 엔티티 직접 노출
@@ -37,6 +40,16 @@ import static java.util.stream.Collectors.toList;
  * - 페이징 가능
  * V6. JPA 에서 DTO 로 바로 조회, 플랫 데이터(1 Query) (1 Query)
  * - 페이징 불가능
+ */
+
+/**
+ * 1. 엔티티 조회 방식으로 우선 접근
+ *      1.1. 페치조인으로 쿼리 수를 최적화
+ *      1.2. 컬렉션 최적화
+ *          1.2.1 페이징 필요 hibernate.default_batch_fetch_size , @BatchSize 로 최적화
+ *          1.2.2 페이징 필요X 페치 조인 사용
+ * 2. 엔티티 조회 방식으로 해결이 안되면 DTO 조회 방식 사용
+ * 3. DTO 조회 방식으로 해결이 안되면 NativeSQL or 스프링 JdbcTemplate
  */
 @RestController
 @RequiredArgsConstructor
@@ -159,6 +172,30 @@ public class OrderApiController {
     @GetMapping("/api/v5/orders")
     public Result<OrderQueryDto> ordersV5() {
         List<OrderQueryDto> orders = orderQueryRepository.findAllByDtoOptimization();
+
+        return new Result(orders);
+    }
+
+    /**
+     * V6: JPA 에서 DTO 로 직접 조회, 플랫 데이터 최적화
+     * Query 1번 발생
+     * 단점
+     * - 쿼리는 한번이지만 조인으로 인해 DB 에서 애플리케이션에 전달하는 데이터에 중복 데이터가 추가되므로 상황에 따라 V5 보다 더 느릴 수 도 있다.
+     * - 애플리케이션에서 추가 작업이 크다.
+     * - 페이징 불가능
+     */
+    @GetMapping("/api/v6/orders")
+    public Result<OrderQueryDto> ordersV6() {
+        List<OrderFlatDto> flats = orderQueryRepository.findAllByDtoFlat();
+
+        List<OrderQueryDto> orders = flats.stream()
+                .collect(groupingBy(o -> new OrderQueryDto(o.getOrderId(), o.getName(), o.getOrderDate(), o.getOrderStatus(), o.getAddress()),
+                        mapping(o -> new OrderItemQueryDto(o.getOrderId(), o.getItemName(), o.getOrderPrice(), o.getCount()), toList())
+                )).entrySet().stream()
+                .map(e -> new OrderQueryDto(e.getKey().getOrderId(), e.getKey().getName(), e.getKey().getOrderDate(), e.getKey().getOrderStatus(),
+                        e.getKey().getAddress(), e.getValue()))
+                .sorted(Comparator.comparing(OrderQueryDto::getOrderId)) // orderId 오름차순 정렬 (필요없음)
+                .collect(toList());
 
         return new Result(orders);
     }
